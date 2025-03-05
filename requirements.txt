@@ -1,0 +1,8 @@
+pytz
+pydantic
+google-genai
+dotenv
+fastapi[standard]
+streamlit
+streamlit-chat
+odmantic

@@ -20,7 +20,9 @@ async def get_eventos(solicitud):
             query.and_(Evento.fecha_fin <= fecha_inicio, Evento.fecha_fin <= fecha_fin)
         )
     ))
-    return {'data':[SolicitudBase(nombre=e.nombre, fecha=e.fecha_inicio.strftime('%Y-%m-%d'), hora_inicio=e.fecha_inicio.strftime('%H:%M'), hora_fin=e.fecha_fin.strftime('%H:%M')) for e in r]}
+    return {'status':'ok',
+            'detail': '',
+            'data':[SolicitudBase(nombre=e.nombre, fecha=e.fecha_inicio.strftime('%Y-%m-%d'), hora_inicio=e.fecha_inicio.strftime('%H:%M'), hora_fin=e.fecha_fin.strftime('%H:%M')) for e in r]}
 
 
 
@@ -103,4 +105,6 @@ async def del_eventos(solicitud):
 
 async def get_eventos_total():
     r = await Engine.find(Evento)
-    return {'data':[SolicitudBase(nombre=e.nombre, fecha=e.fecha_inicio.strftime('%Y-%m-%d'), hora_inicio=e.fecha_inicio.strftime('%H:%M'), hora_fin=e.fecha_fin.strftime('%H:%M')) for e in r]}
+    return {'status':'ok',
+            'detail': '',
+            'data':[SolicitudBase(nombre=e.nombre, fecha=e.fecha_inicio.strftime('%Y-%m-%d'), hora_inicio=e.fecha_inicio.strftime('%H:%M'), hora_fin=e.fecha_fin.strftime('%H:%M')) for e in r]}

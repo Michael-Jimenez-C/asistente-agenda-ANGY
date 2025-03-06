@@ -2,7 +2,7 @@ from google import genai
 import os
 from .actions import ObtenerFecha
 import json
-from .agentResponses import Solicitud, Conocimiento, Respuesta
+from .agentResponses import Solicitud, Evento, Respuesta
 import requests
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -69,23 +69,6 @@ def genSalida(input: str):
           }, input)
   return response.text
 
-@context
-def validador(input: str):
-  response = model({
-          'system_instruction':Roles.validador,
-          'response_mime_type': 'application/json',
-          'response_schema': Conocimiento
-          }, input)
-  return response.text  
-
-def exitFormater(input: str):
-  response = model({
-          'response_mime_type': 'application/json',
-          'response_schema': Respuesta,
-          'system_instruction':Roles.asistente
-          }, input)
-  return response
-
 
 def asistente(consulta: str):
   eventos = requests.get(f"{SERVER}/all")
@@ -96,9 +79,12 @@ def asistente(consulta: str):
     )
   r = requests.post(SERVER, json=response)
   json = r.json()
-  print(response)
-  return genSalida(str({
+
+  ev = Evento(nombre= response['nombre'], fecha=response['fecha'], hora_inicio=response['hora_inicio'], hora_fin=response['hora_fin'])
+  resp = Respuesta(status=json['status'], mensaje=json['detail'], evento=ev)
+
+  return str(genSalida(str({
     'consulta': consulta,
     'formated': response,
-    'response':json,
-    }))
+    'response': json,
+    }))),resp.json()

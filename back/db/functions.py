@@ -58,6 +58,11 @@ async def mod_evento(solicitud):
                 }
     
     evento = await Engine.find_one(Evento, Evento.nombre == solicitud.nombre)
+    if not evento:
+        return {
+                'status':'failed',
+                'detail':'No se encontró el evento'
+                }
 
     cruce = await get_eventos(solicitud)
     if len(cruce['data']) > 1 and cruce['data'][0].nombre != solicitud.nombre:
@@ -71,12 +76,26 @@ async def mod_evento(solicitud):
     await Engine.save(evento)
     return {
             'status':'Ok',
-            'detail':'Se guardó correctamente'
+            'detail':'Se guardó correctamente el cambio'
             }
 
 async def del_evento(solicitud):
     fecha_inicio, fecha_fin = procesarFechas(solicitud)
-    await Engine.remove(Evento, Evento.nombre == solicitud.nombre, Evento.fecha_inicio == fecha_inicio, Evento.fecha_fin == fecha_fin, just_one=True)
+    ev_dv = await Engine.find_one(Evento, Evento.nombre == solicitud.nombre, Evento.fecha_inicio == fecha_inicio, Evento.fecha_fin == fecha_fin)
+    if not ev_dv:
+        return {
+                'status':'failed',
+                'detail':'No se encontró el evento'
+                }
+    await Engine.delete(ev_dv)
+    return {
+            'status':'Ok',
+            'detail':'Se eliminó correctamente'
+            }
+
+async def del_eventos(solicitud):
+    fecha_inicio, fecha_fin = procesarFechas(solicitud)
+    await Engine.remove(Evento, Evento.fecha_inicio >= fecha_inicio, Evento.fecha_fin <= fecha_fin)
     return {
             'status':'Ok',
             'detail':'Se eliminó correctamente'

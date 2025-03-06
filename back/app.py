@@ -5,7 +5,7 @@ import tests
 
 load_dotenv()
 
-from db.functions import get_eventos, post_evento, mod_evento, del_evento, get_eventos_total
+from db.functions import get_eventos, post_evento, mod_evento, del_evento, get_eventos_total, del_eventos
 
 app = FastAPI()
 
@@ -16,9 +16,11 @@ async def procesarSolicitud(solicitud: Solicitud):
         case TipoSolicitud.agregar:
             return await post_evento(solicitud)
         case TipoSolicitud.eliminar:
-            return await mod_evento(solicitud)
-        case TipoSolicitud.modificar:
             return await del_evento(solicitud)
+        case TipoSolicitud.eliminarEntre:
+            return await del_eventos(solicitud)
+        case TipoSolicitud.modificar:
+            return await mod_evento(solicitud)
         case TipoSolicitud.listar:
             return await get_eventos(solicitud)
 

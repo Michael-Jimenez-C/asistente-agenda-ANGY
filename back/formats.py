@@ -1,9 +1,10 @@
 from pydantic import BaseModel
 from enum import Enum
 
-class TipoSolicitud(Enum):
+class TipoSolicitud(str,Enum):
   agregar = "agendar"
   eliminar = "eliminar"
+  eliminarEntre = "eliminarEntre"
   modificar = "modificar"
   listar = "listar"
 

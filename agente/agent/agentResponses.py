@@ -3,7 +3,8 @@ from enum import Enum
 
 class TipoSolicitud(str,Enum):
   agregar = "agendar"
-  eliminar = "eliminar"
+  eliminarUno = "eliminar"
+  eliminarVarios = "eliminarEntre"
   modificar = "modificar"
   listar = "listar"
 

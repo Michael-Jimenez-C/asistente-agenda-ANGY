@@ -26,12 +26,6 @@ class Roles:
   la verificación de conflictos lo realizará otro agente, asi que ignoraras esos posibles problemas, tampoco debes verificar los valores inferidos a partir de datos relativos, o si no se indica hora final pues se infiere que es dentro de una hora.
   """
 
-  orquestador = \
-  """
-  Eres un asistente que se encarga de tomar desiciones sobre como proceder ante una solicitud, tendrás que generar una lista de acciones a tomar para obtener la información necesaria para cada solicitud.
-  Por defecto las solicitudes de agregar y listar no requieren pasos adicionales.
-  """
-
 global Context
 Context = None
 
@@ -90,14 +84,19 @@ def exitFormater(input: str):
           'response_schema': Respuesta,
           'system_instruction':Roles.asistente
           }, input)
+  return response
 
 
-def asistente(consulta: str):  
-  response = asistente_formater(consulta)
-
+def asistente(consulta: str):
+  eventos = requests.get(f"{SERVER}/all")
+  response = asistente_formater(
+    str({'user':consulta,
+         'data': eventos.json()['data']
+    })
+    )
   r = requests.post(SERVER, json=response)
   json = r.json()
-  
+  print(response)
   return genSalida(str({
     'consulta': consulta,
     'formated': response,

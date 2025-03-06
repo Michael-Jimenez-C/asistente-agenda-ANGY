@@ -5,3 +5,5 @@ dotenv
 fastapi[standard]
 streamlit
 odmantic
+streamlit_mic_recorder
+streamlit_calendar

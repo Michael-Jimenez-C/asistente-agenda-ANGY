@@ -1,13 +1,18 @@
 from pydantic import BaseModel
 from enum import Enum
 
-class TipoSolicitud(Enum):
+class TipoSolicitud(str,Enum):
   agregar = "agendar"
   eliminar = "eliminar"
   modificar = "modificar"
-  listarPN = "listarPorNombre"
-  listarPF = "listarPorFechas"
   listar = "listar"
+
+class Conocimiento(str,Enum):
+  AmbiguedadEnNombre = "ambiguedad en nombre"
+  AmbiguedadEnFechas = "ambiguedad en fechas"
+  InformacionSuficiente = "Informacion suficiente"
+  BuscarPorFecha = "buscar por fecha"
+
 
 class Evento(BaseModel):
   nombre: str

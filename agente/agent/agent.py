@@ -2,10 +2,11 @@ from google import genai
 import os
 from .actions import ObtenerFecha
 import json
-from .agentResponses import Solicitud
+from .agentResponses import Solicitud, Conocimiento, Respuesta
+import requests
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
-
+SERVER = os.environ.get("SERVER")
 
 class Roles:
   formateador = \
@@ -15,8 +16,33 @@ class Roles:
 
   Por defecto si no se indica hora de fin, se toma la hora de inicio y se añade una hora
   Por defecto si no se indica hora de inicio, se toma la hora actual
+
+  Si la operación podria requerir una busqueda del dia fija la hora como las 00, y hora final como las 23:59
   """
 
+  asistente = \
+  """
+  Eres un asistente que se encarga de tomar la respuesta retornada por el servidor, y la entrada del susuario para entregar una respuesta más humanizada al usuario, trata de indicar cual es el error, por ejemplo con que actividades hay cruce
+  la verificación de conflictos lo realizará otro agente, asi que ignoraras esos posibles problemas, tampoco debes verificar los valores inferidos a partir de datos relativos, o si no se indica hora final pues se infiere que es dentro de una hora.
+  """
+
+  orquestador = \
+  """
+  Eres un asistente que se encarga de tomar desiciones sobre como proceder ante una solicitud, tendrás que generar una lista de acciones a tomar para obtener la información necesaria para cada solicitud.
+  Por defecto las solicitudes de agregar y listar no requieren pasos adicionales.
+  """
+
+global Context
+Context = None
+
+def model(config, input):
+  client = genai.Client(api_key=API_KEY)
+  response = client.models.generate_content(
+      model='gemini-2.0-flash',
+      config=config,
+      contents=[input]
+  )
+  return response
 
 def context(f):
   def wrapper(input: str):
@@ -28,18 +54,12 @@ def context(f):
   return wrapper
 
 @context
-def asistente(input: str):
-  client = genai.Client(api_key=API_KEY)
-
-  response = client.models.generate_content(
-      model='gemini-2.0-flash',
-      config={
+def asistente_formater(input: str):
+  response = model({
           'response_mime_type': 'application/json',
           'response_schema': Solicitud,
           'system_instruction':Roles.formateador
-          },
-      contents=[input]
-  )
+          }, input)
   res = None
   try:
     res = json.loads(response.text)
@@ -47,3 +67,39 @@ def asistente(input: str):
     print('No fue posible generar el json', e)
   finally:
     return res
+  
+@context
+def genSalida(input: str):
+  response = model({
+          'system_instruction':Roles.asistente
+          }, input)
+  return response.text
+
+@context
+def validador(input: str):
+  response = model({
+          'system_instruction':Roles.validador,
+          'response_mime_type': 'application/json',
+          'response_schema': Conocimiento
+          }, input)
+  return response.text  
+
+def exitFormater(input: str):
+  response = model({
+          'response_mime_type': 'application/json',
+          'response_schema': Respuesta,
+          'system_instruction':Roles.asistente
+          }, input)
+
+
+def asistente(consulta: str):  
+  response = asistente_formater(consulta)
+
+  r = requests.post(SERVER, json=response)
+  json = r.json()
+  
+  return genSalida(str({
+    'consulta': consulta,
+    'formated': response,
+    'response':json,
+    }))

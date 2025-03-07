@@ -41,3 +41,8 @@ class SolicitudBase(BaseModel):
 
 class Solicitud(SolicitudBase):
   solicitud:TipoSolicitud
+
+class Evento(BaseModel):
+    nombre: str
+    fecha_inicio: datetime
+    fecha_fin: datetime

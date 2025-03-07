@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from interfaces import Solicitud, TipoSolicitud
+from interfaces import Solicitud, TipoSolicitud,Evento
 from dotenv import load_dotenv
 import mocks
 
@@ -24,7 +24,7 @@ async def procesarSolicitud(solicitud: Solicitud):
         case TipoSolicitud.LISTAR:
             return await get_eventos(solicitud)
 
-@app.get("/all")
+@app.get("/all", response_model = list[Evento])
 async def getAll():
     return await get_todos()
         

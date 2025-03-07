@@ -84,7 +84,4 @@ async def del_eventos(solicitud):
 
 async def get_todos():
     r = await Engine.find(Evento)
-    return {'status':'ok',
-            'detail': '',
-            'data':r
-            }
+    return r

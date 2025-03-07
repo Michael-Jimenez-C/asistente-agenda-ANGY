@@ -13,15 +13,15 @@ app = FastAPI()
 async def procesarSolicitud(solicitud: Solicitud):
     
     match solicitud.solicitud:
-        case TipoSolicitud.agregar:
+        case TipoSolicitud.AGREGAR:
             return await post_evento(solicitud)
-        case TipoSolicitud.eliminar:
+        case TipoSolicitud.ELIMINAR_UNO:
             return await del_evento(solicitud)
-        case TipoSolicitud.eliminarEntre:
+        case TipoSolicitud.ELIMINAR_VARIOS:
             return await del_eventos(solicitud)
-        case TipoSolicitud.modificar:
+        case TipoSolicitud.MODIFICAR:
             return await put_evento(solicitud)
-        case TipoSolicitud.listar:
+        case TipoSolicitud.LISTAR:
             return await get_eventos(solicitud)
 
 @app.get("/all")

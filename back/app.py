@@ -1,11 +1,11 @@
 from fastapi import FastAPI
-from formats import Solicitud, TipoSolicitud
+from interfaces import Solicitud, TipoSolicitud
 from dotenv import load_dotenv
-import tests
+import mocks
 
 load_dotenv()
 
-from db.functions import get_eventos, post_evento, mod_evento, del_evento, get_eventos_total, del_eventos
+from db.functions import get_eventos, post_evento, put_evento, del_evento, get_todos, del_eventos
 
 app = FastAPI()
 
@@ -20,14 +20,14 @@ async def procesarSolicitud(solicitud: Solicitud):
         case TipoSolicitud.eliminarEntre:
             return await del_eventos(solicitud)
         case TipoSolicitud.modificar:
-            return await mod_evento(solicitud)
+            return await put_evento(solicitud)
         case TipoSolicitud.listar:
             return await get_eventos(solicitud)
 
 @app.get("/all")
 async def getAll():
-    return await get_eventos_total()
+    return await get_todos()
         
 @app.post("/init")
 async def init():
-    await tests.init()
+    await mocks.init()

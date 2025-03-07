@@ -1,7 +1,7 @@
 from .models import Evento
 from .engine import Engine
 from datetime import datetime
-from formats import SolicitudBase
+from interfaces import SolicitudBase
 from odmantic import query
 
 
@@ -51,7 +51,7 @@ async def post_evento(solicitud):
 
 
 
-async def mod_evento(solicitud):
+async def put_evento(solicitud):
     fecha_inicio, fecha_fin = procesarFechas(solicitud)
     if fecha_inicio >= fecha_fin:
         return {
@@ -103,7 +103,7 @@ async def del_eventos(solicitud):
             'detail':'Se eliminó correctamente'
             }
 
-async def get_eventos_total():
+async def get_todos():
     r = await Engine.find(Evento)
     return {'status':'ok',
             'detail': '',

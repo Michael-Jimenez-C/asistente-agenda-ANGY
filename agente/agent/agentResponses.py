@@ -2,11 +2,11 @@ from pydantic import BaseModel
 from enum import Enum
 
 class TipoSolicitud(str,Enum):
-  agregar = "agendar"
-  eliminarUno = "eliminar"
-  eliminarVarios = "eliminarEntre"
-  modificar = "modificar"
-  listar = "listar"
+  AGREGAR = "agendar"
+  ELIMINAR_UNO = "eliminarUno"
+  ELIMINAR_VARIOS = "eliminarEntre"
+  MODIFICAR = "modificar"
+  LISTAR = "listar"
 
 class Evento(BaseModel):
   nombre: str

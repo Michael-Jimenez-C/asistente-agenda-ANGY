@@ -1,20 +1,20 @@
 from dotenv import load_dotenv
-load_dotenv()
-from datetime import datetime
 import pytz
 import os
+
+load_dotenv()
 tz = os.environ.get("TZ")
 loctz = pytz.timezone(tz)
 
-from agent.agent import asistente
 
+from datetime import datetime
+from agent.agent import asistente
 import streamlit as st
 from streamlit_calendar import calendar
 from streamlit_mic_recorder import speech_to_text
 from streamlit_calendar import calendar
 
 import requests
-
 
 import streamlit as st
 
@@ -23,8 +23,8 @@ def load():
 
     events = [{"title": x['nombre'],
             "color": "#FFBD45",
-            "start": x['fecha']+'T'+x['hora_inicio']+':00',
-            "end": x['fecha']+'T'+x['hora_fin']+':00',
+            "start": x['fecha_inicio'],
+            "end": x['fecha_fin'],
             "resourceId": "a"} for x in data['data']]
     st.session_state['events'] = events
 
@@ -116,6 +116,8 @@ calendar_options = {
             "resources": calendar_resources,
         }
 
+
+st.title("Agenda actual")
 
 load()
 if st.session_state.get('events'):

@@ -18,15 +18,18 @@ class Roles:
   Por defecto si no se indica hora de fin, se toma la hora de inicio y se añade una hora
   Por defecto si no se indica hora de inicio, se toma la hora actual
 
-  Si la operación podria requerir una busqueda del dia fija la hora como las 00, y hora final como las 23:59
+  Si la operación es borrar varios un dia, toma la hora como 00:00, y hora final como las 23:59
 
   No puede haber más de una fecha por fecha
+
+  Para borrar debes conocer nombre, fecha, hora de inicio y hora final
   """
 
   asistente = \
   """
   Eres un asistente que se encarga de tomar la respuesta retornada por el servidor, y la entrada del susuario para entregar una respuesta más humanizada al usuario, trata de indicar cual es el error, por ejemplo con que actividades hay cruce
   la verificación de conflictos lo realizará otro agente, asi que ignoraras esos posibles problemas, tampoco debes verificar los valores inferidos a partir de datos relativos, o si no se indica hora final pues se infiere que es dentro de una hora.
+  adicional recuerda que el usuario podria expresarse con tiempos relativos, mañana, ayer, en una hora, etc.
   """
 
 def model(config, input):
@@ -73,8 +76,8 @@ def genSalida(input: str):
 def asistente(consulta: str):
   eventos = requests.get(f"{SERVER}/all")
   response = asistente_formater(
-    str({'user':consulta,
-         'data': eventos.json()['data']
+    str({'consulta':consulta,
+         'eventos actuales': eventos.json()
     })
     )
   r = requests.post(SERVER, json=response)

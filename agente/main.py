@@ -25,7 +25,7 @@ def load():
             "color": "#FFBD45",
             "start": x['fecha_inicio'],
             "end": x['fecha_fin'],
-            "resourceId": "a"} for x in data['data']]
+            "resourceId": "a"} for x in data]
     st.session_state['events'] = events
 
 def on_input_change():

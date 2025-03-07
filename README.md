@@ -7,11 +7,9 @@ Este repositorio es una prueba sobre el uso de IA para hacer una interaccion hum
 
 # Estructura
 
-La idea básica del funcionamiento de la aplicación es la siguiente, el usuario haria una petición que es interpretada usando un formato json dado, de forma que debe elegir el tipo de solicitud adecuado para cumplir la petición del usuario.
+En este flujo el usuario hace una petición que es interpretada por el LLM, extrae los datos de la solicitud y los estructura en un formato json, y se escoge el tipo de solicitud adecuado para cumplir la petición del usuario. La entrada del usuario puede ser multimodal audio o texto.
 
-La entrada del usuario puede ser un audio o un chat.
-
-Luego de ser procesada se retorna una respuesta y una LLM se encarga de procesarla junto con la respuesta de la API para entregar al usuario una respuesta en lenguaje natural.
+Luego de ser procesada la solicitud, se retorna una respuesta y el LLM se encarga de procesarla junto con la respuesta de la API para entregar al usuario una respuesta en lenguaje natural.
 <img src="docs/Diagrama sin título.drawio.png"></img>
 
 # Ejecutar el proyecto

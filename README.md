@@ -5,6 +5,10 @@ Este repositorio es una prueba sobre el uso de IA para hacer una interaccion hum
 <img src="docs/chat.png"/>
 <img src="docs/calendario.png"/>
 
+<img src="docs/error1.png"/>
+<img src="docs/cruce.png"/>
+<img src="docs/modificacion.png"/>
+
 # Estructura
 
 En este flujo el usuario hace una petición que es interpretada por el LLM, extrae los datos de la solicitud y los estructura en un formato json, y se escoge el tipo de solicitud adecuado para cumplir la petición del usuario. La entrada del usuario puede ser multimodal audio o texto.

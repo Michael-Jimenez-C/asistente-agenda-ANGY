@@ -14,6 +14,11 @@ Luego de ser procesada la solicitud, se retorna una respuesta y el LLM se encarg
 
 # Ejecutar el proyecto
 Para ejecutar es necesario un servidor de mongo, se recomienda con docker o podman para pruebas.
+
+```sh
+docker run --name agente-db -p 27017:27017 mongo
+```
+
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
@@ -21,6 +26,9 @@ pip install -r requirements
 ```
 
 copiar el ``.env.example`` como ``.env`` y colocar el token de gemini.
+```sh
+cp .env.example .env
+```
 
 ```sh
 fastapi run back/app.py

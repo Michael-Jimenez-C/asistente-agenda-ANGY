@@ -18,6 +18,12 @@ import requests
 
 import streamlit as st
 
+
+from tts.tts import speech
+
+
+
+
 def load():
     data = requests.get(f"{os.environ.get('SERVER')}/all").json()
 
@@ -28,18 +34,12 @@ def load():
             "resourceId": "a"} for x in data]
     st.session_state['events'] = events
 
-def on_input_change():
-    user_input = st.session_state.user_input
-    st.session_state.past.append(user_input)
-    response, data = asistente(user_input)
-    st.session_state.generated.append(str(response))
-    st.session_state.responses.append(str(data))
-
 def send(prompt: str):
     st.session_state.past.append(prompt)
     response, data = asistente(prompt)
     st.session_state.generated.append(str(response))
     st.session_state.responses.append(str(data))
+    st.session_state.audio.append(speech(str(response)))
 
 
 def on_btn_click():
@@ -63,6 +63,12 @@ st.session_state.setdefault(
     []
 )
 
+
+st.session_state.setdefault(
+    'audio', 
+    []
+)
+
 st.session_state.setdefault(
     'events', 
     []
@@ -80,12 +86,14 @@ if text := speech_to_text("Grabar audio","Enviar",language='es',use_container_wi
 for i in range(len(st.session_state['generated'])):
     messages.chat_message("user").write(st.session_state['past'][i])
     messages.chat_message("assistant").write(st.session_state['generated'][i])
+    if st.session_state['audio'][i]:
+        messages.chat_message("assistant").audio(st.session_state['audio'][i],autoplay=True)
 
 ## Responses
 col2.title("Responses")
 responses = col2.container(height=300)
 for i in range(len(st.session_state['responses'])):
-        responses.chat_message("assistant").json(st.session_state['responses'][i])
+        responses.chat_message("assistant").json(st.session_state['responses'][i], expanded=1)
 
 calendar_resources = [
     {"id": "a", "building": "Building A", "title": "Room A"},

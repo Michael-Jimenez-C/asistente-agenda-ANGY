@@ -76,11 +76,12 @@ st.session_state.setdefault(
 
 ##CHAT
 col1.title("Asistente")
-messages = col1.container(height=300)
+messages = col1.container(height=400)
 if prompt := col1.chat_input("Say something"):
     send(prompt)
-if text := speech_to_text("Grabar audio","Enviar",language='es',use_container_width=True,key='STT'):
-    send(text)
+with col1:
+    if text := speech_to_text("Grabar audio","Enviar",language='es',use_container_width=True,key='STT'):
+        send(text)
 
 
 for i in range(len(st.session_state['generated'])):
@@ -91,7 +92,7 @@ for i in range(len(st.session_state['generated'])):
 
 ## Responses
 col2.title("Responses")
-responses = col2.container(height=300)
+responses = col2.container(height=400)
 for i in range(len(st.session_state['responses'])):
         responses.chat_message("assistant").json(st.session_state['responses'][i], expanded=1)
 

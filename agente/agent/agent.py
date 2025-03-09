@@ -41,16 +41,23 @@ def model(config, input):
   )
   return response
 
-def context(f):
-  def wrapper(input: str):
-    tmp = {
-        "Usuario": input,
-        "Fecha actual": ObtenerFecha()
-    }
-    return f(str(tmp))
-  return wrapper
+def context(**kwargs):
+  """
+  Ese decorador de contexto se encarga de recibir un conjunto de funciones a ejecutar y las asigna a un diccionario
+  junto a la entrada
+  """
+  def context_(f):
+    def wrapper(input: str):
+      tmp = {
+          "Usuario": input
+      }
+      for i in kwargs:
+        tmp[i] = kwargs[i]()
+      return f(str(tmp))
+    return wrapper
+  return context_
 
-@context
+@context(fecha_actual = ObtenerFecha, eventos = lambda: requests.get(f"{SERVER}/all").json())
 def asistente_formater(input: str):
   response = model({
           'response_mime_type': 'application/json',
@@ -65,7 +72,7 @@ def asistente_formater(input: str):
   finally:
     return res
 
-@context
+@context(fecha_actual = ObtenerFecha)
 def genSalida(input: str):
   response = model({
           'system_instruction':Roles.asistente
@@ -74,23 +81,16 @@ def genSalida(input: str):
 
 
 def asistente(consulta: str):
-  eventos = requests.get(f"{SERVER}/all")
-  response = asistente_formater(
-    str({'consulta':consulta,
-         'eventos actuales': eventos.json()
-    })
-    )
+  response = asistente_formater(consulta)
   r = requests.post(SERVER, json=response)
-  try:
-    json = r.json()
-    ev = Evento(nombre= response['nombre'], fecha=response['fecha'], hora_inicio=response['hora_inicio'], hora_fin=response['hora_fin'])
-    resp = Respuesta(status=json['status'] if 'status' in json else 'failed', mensaje=str(json['detail']), evento=ev)
+  json = r.json()
+  context.append(json)
 
-    return str(genSalida(str({
-      'consulta': consulta,
-      'formated': response,
-      'response': json,
-      }))),resp.json()
-  except:
-    print('Error en la respuesta del servidor')
-    return str(genSalida(str(r))), {"error", 'Error en la respuesta del servidor'}
+  ev = Evento(nombre= response['nombre'], fecha=response['fecha'], hora_inicio=response['hora_inicio'], hora_fin=response['hora_fin'])
+  resp = Respuesta(status=json['status'] if 'status' in json else 'failed', mensaje=str(json['detail']), evento=ev)
+
+  return str(genSalida(str({
+    'consulta': consulta,
+    'formated': response,
+    'response': json,
+    }))),resp.json()

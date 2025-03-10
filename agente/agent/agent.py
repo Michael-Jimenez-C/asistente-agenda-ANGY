@@ -84,7 +84,6 @@ def asistente(consulta: str):
   response = asistente_formater(consulta)
   r = requests.post(SERVER, json=response)
   json = r.json()
-  context.append(json)
 
   ev = Evento(nombre= response['nombre'], fecha=response['fecha'], hora_inicio=response['hora_inicio'], hora_fin=response['hora_fin'])
   resp = Respuesta(status=json['status'] if 'status' in json else 'failed', mensaje=str(json['detail']), evento=ev)

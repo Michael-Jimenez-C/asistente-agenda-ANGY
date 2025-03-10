@@ -82,6 +82,10 @@ def genSalida(input: str):
 
 def asistente(consulta: str):
   response = asistente_formater(consulta)
+  if response['solicitud'] == "NADA":
+    return str(genSalida(str({
+    'consulta': consulta
+    }))),"{}"
   r = requests.post(SERVER, json=response)
   json = r.json()
 

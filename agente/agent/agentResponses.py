@@ -7,6 +7,7 @@ class TipoSolicitud(str,Enum):
   ELIMINAR_VARIOS = "eliminarEntre"
   MODIFICAR = "modificar"
   LISTAR = "listar"
+  NADA = "NADA"
 
 class Evento(BaseModel):
   nombre: str

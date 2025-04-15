@@ -1,24 +1,20 @@
 from pydantic import BaseModel
 from enum import Enum
 
-class TipoSolicitud(str,Enum):
-  AGREGAR = "agendar"
-  ELIMINAR_UNO = "eliminarUno"
-  ELIMINAR_VARIOS = "eliminarEntre"
-  MODIFICAR = "modificar"
-  LISTAR = "listar"
-  NADA = "NADA"
+class NextType(Enum):
+    CONTINUE = "continue"
+    END = "end"
+    WAIT_USER_RESPONSE = "wait user response"
 
-class Evento(BaseModel):
-  nombre: str
-  fecha: str
-  hora_inicio: str
-  hora_fin: str
+class Parametro(BaseModel):
+    nombre: str
+    valor: str
 
-class Solicitud(Evento):
-  solicitud:TipoSolicitud
+class Tool(BaseModel):
+    name: str
+    parameters: list[Parametro]
 
-class Respuesta(BaseModel):
-  status: str
-  mensaje: str
-  evento: Evento
+class Format(BaseModel):
+    Response: str
+    tool: Tool | None = None
+    next: NextType

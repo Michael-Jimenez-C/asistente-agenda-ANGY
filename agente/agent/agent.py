@@ -11,7 +11,7 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 ROLE = \
 """
 ROL: 
-Eres ANGY, un asistente de agenda virtual. Tu función es gestionar agendas de manera eficiente, precisa y profesional, debes agilizar todos los procesos por lo cual datos no necesarios se ignoran si el usuario no los ofrece, y no siempre requieres que responda el usuario.
+Eres ANGY, un asistente de agenda virtual. Tu función es gestionar agendas de manera eficiente, precisa y profesional, debes agilizar todos los procesos por lo cual datos no necesarios se ignoran si el usuario no los ofrece, y no siempre requieres que responda el usuario, tu fecha por defecto no es confiable, usa la herramienta proporcionada para saber la fecha actual real, tienes prohibido pedirle fechas exactas al usuario, si te las da relativas es más que suficiente.
 
 CARACTERÍSTICAS:
 - Respuestas: Formales, concisas y claras (máximo 2 oraciones por respuesta)
@@ -19,12 +19,16 @@ CARACTERÍSTICAS:
 - Enfoque: Resolutivo y orientado a acciones
 - Siempre que se requieran fechas relativas, hoy, mañana, en una hora, etc debes calcularlas mediante herramientas, no puedes usar tus registros pues están atrasados, no se la puedes pedir al usuario.
 - Si no se te pide agendar puedes responder libremente, respetando las reglas de uso de herramientas.
+- Si te equivocas, deshaz la operación que hayas realizado y corrige.
+- Next es una caracteristica importante, solo wait permite pedir ayuda al usuario, pero debes evitar lo maximo posible usar este metodo.
+- Siempre trata de buscarla información antes de solicitar aclaraciones al usuario.
+- No te compliques con las herramientas, si puedes resolverlo simplificando parametros mejor
 
 PROTOCOLOS DE ACCIÓN:
 1. Herramientas:
    - Usar solo una herramienta a la vez, se te pasan con el nombre de tools
-   - Siempre que se use función se debe usar la opción de continuar, para recibir la respuesta de la función, sin excepciones.
-   - Especificar siempre nombre y parámetros en formato diccionario
+   - Siempre que se usen herramientas se debe usar la opción de continuar, para recibir la respuesta de la herramienta, sin excepciones, de lo contrario será ignorado y continuará de todas formas.
+   - Especificar siempre nombre y parámetros en formato diccionario, bajo ningún motivo tienes permitido colocar valores cualquiera en variables de tipo fecha, siempre deben ser calculadas por herramientas y el formato de fecha es %Y-%m-%d %H:%M:%S
    - Pioriza el uso de las herramientas para saber si las acciones se han efectuado correctamente
    - Ejemplo: {"tool": "buscar_contacto", "params": {"nombre": "Juan"}}
 
@@ -80,8 +84,12 @@ def describer(func):
 
     parametros = []
     for nombre, parametro in firma.parameters.items():
-        tipo = typeformat(parametro.annotation)
-        parametros.append((nombre, tipo))
+      tipo = typeformat(parametro.annotation)
+      if parametro.default is inspect.Parameter.empty:
+        obligatorio = "obligatoria"
+      else:
+        obligatorio = "opcional"
+      parametros.append((nombre, tipo, obligatorio))
 
     return {
         "nombre": nombre_funcion,
@@ -96,25 +104,11 @@ def normalize_params(params):
     kwargs[i['nombre']] = i['valor']
   return kwargs
 
-
+TOOLS = {i.__name__:i for i in [ObtenerFechaActual, CalcularFecha, getEventBetween, createEvent, getEventsByName, putEvent, deleteEventById]}
 
 def resove_tool(name, params_):
   params = normalize_params(params_)
-  if name == ObtenerFechaActual.__name__:
-      return ObtenerFechaActual()
-  if name == CalcularFecha.__name__:
-      return CalcularFecha(**params)
-  if name == getEventBetween.__name__:
-      return getEventBetween(**params)
-  if name == createEvent.__name__:
-      return createEvent(**params)
-  if name == getEventsByName.__name__:
-      return getEventsByName(**params)
-  if name == putEvent.__name__:
-      return putEvent(**params)
-  if name == deleteEventById.__name__:
-      return deleteEventById(**params)
-  return None
+  return TOOLS[name](**params)
 
 
 global HISTORY
@@ -124,7 +118,7 @@ HISTORY = ""
 async def asistente(input: str, proc: str = None):
   global HISTORY
   if HISTORY=="":
-    functions = [ObtenerFechaActual, CalcularFecha, getEventBetween, createEvent, getEventsByName, putEvent, deleteEventById]
+    functions = [i for i in TOOLS.values()]
     tools = {}
     for i in functions:
       desc = describer(i)
@@ -132,6 +126,7 @@ async def asistente(input: str, proc: str = None):
       print(tools)
     HISTORY+=str({"tools": tools})
   HISTORY += str({"User": input})
+  print(input)
   end = False
   while not end:
     response = await model({
@@ -150,10 +145,15 @@ async def asistente(input: str, proc: str = None):
     HISTORY += str({"Assistant": res['Response']})
     print(res['Response'])
     if 'tool' in res and res['tool'] != None:
-      res['next'] = NextType.CONTINUE.value
-      tool_return = resove_tool(res['tool']['name'], res['tool']['parameters'])
+      try:
+        tool_return = resove_tool(res['tool']['name'], res['tool']['parameters'])
+      except Exception as e:
+        tool_return = str(e)
+      print('\033[91m', res['tool']['name'], '\033[0m')
       print('\033[91m', res['tool']['parameters'], '\033[0m')
-      HISTORY += str({"Tool_response": tool_return})
+      print('\033[91m', tool_return, '\033[0m')
+      HISTORY += '\n'+str({"Tool_response": tool_return})
+      continue
     if res['next'] == NextType.WAIT_USER_RESPONSE.value:
       end = True
     if res['next'] == NextType.END.value:

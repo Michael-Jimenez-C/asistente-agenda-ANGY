@@ -22,7 +22,7 @@ def CalcularFecha(date:datetime, days:int = 0, weeks:int = 0, hours:int = 0, min
     minutes = int(minutes)
     return str((date + timedelta(days=days, weeks=weeks, hours=hours, minutes=minutes)).strftime('%Y-%m-%d %H:%M | fecha %A %d de %B'))
   except Exception as e:
-    return str(e) + " | Error al calcular la fecha, revisa el formato de la fecha de entrada"
+    return str(e) + " | Error al calcular la fecha, revisa el formato de la fecha de entrada %Y-%m-%d %H:%M:%S"
 
 def getEventBetween(date_start: datetime, date_end: datetime):
     try:
@@ -39,7 +39,7 @@ def getEventBetween(date_start: datetime, date_end: datetime):
     except Exception as e:
         return {"status": "error", "message": f"Excepción al realizar la solicitud: {str(e)}"}
   
-def createEvent(name: str, date_start: datetime, date_end: datetime, description: str = None, location: str = None):
+def createEvent(name: str, date_start: datetime, date_end: datetime, description: str = '', location: str = ''):
     try:
         url = f"{SERVER}/create"
         data = {

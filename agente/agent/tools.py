@@ -9,11 +9,14 @@ loctz = pytz.timezone(tz)
 
 def ObtenerFechaActual() -> str:
   """
-  Recupera la fecha actual
+  Recupera la fecha actual y la formatea en una cadena legible.
   """
   return str(datetime.now(loctz).strftime('%Y-%m-%d %H:%M:%S | Hoy es %A %d de %B'))
 
 def CalcularFecha(date:datetime, days:int = 0, weeks:int = 0, hours:int = 0, minutes:int = 0) -> str:
+  """
+  date debe tener el formato: yyyy-mm-dd H:M:S
+  """
   try:
     date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
     days = int(days)
@@ -25,6 +28,9 @@ def CalcularFecha(date:datetime, days:int = 0, weeks:int = 0, hours:int = 0, min
     return str(e) + " | Error al calcular la fecha, revisa el formato de la fecha de entrada %Y-%m-%d %H:%M:%S"
 
 def getEventBetween(date_start: datetime, date_end: datetime):
+    """
+    Retorna los eventos que ocurren entre dos fechas dadas.
+    """
     try:
         url = f"{SERVER}/between"  
         params = {
@@ -40,6 +46,9 @@ def getEventBetween(date_start: datetime, date_end: datetime):
         return {"status": "error", "message": f"Excepción al realizar la solicitud: {str(e)}"}
   
 def createEvent(name: str, date_start: datetime, date_end: datetime, description: str = '', location: str = ''):
+    """
+    Crea un evento
+    """
     try:
         url = f"{SERVER}/create"
         data = {
@@ -51,7 +60,7 @@ def createEvent(name: str, date_start: datetime, date_end: datetime, description
         }
         response = requests.post(url, json=data)
         if response.status_code == 200:
-            return {"status": "success", "message": "Evento creado exitosamente"}
+            return response.json()
         else:
             return {"status": "error", "message": f"Error no se pudo obtener respuesta del servidor: {response.status_code}"}
     except Exception as e:

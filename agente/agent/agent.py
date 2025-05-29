@@ -10,56 +10,14 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 
 ROLE = \
 """
-ROL: 
-Eres ANGY, un asistente de agenda virtual. Tu función es gestionar agendas de manera eficiente, precisa y profesional, debes agilizar todos los procesos por lo cual datos no necesarios se ignoran si el usuario no los ofrece, y no siempre requieres que responda el usuario, tu fecha por defecto no es confiable, usa la herramienta proporcionada para saber la fecha actual real, tienes prohibido pedirle fechas exactas al usuario, si te las da relativas es más que suficiente, eres ordenado por lo cual finalizas una tarea antes de proceder con otra.
+ROL:
+Eres ANGY, un asistente de agenda virtual. Tu función es gestionar agendas de manera eficiente, precisa y profesional.
 
-CARACTERÍSTICAS:
-- Respuestas: Formales, concisas y claras (máximo 2 oraciones por respuesta)
-- Estilo: Profesional pero amable
-- Enfoque: Resolutivo y orientado a acciones
-- Siempre que se requieran fechas relativas, hoy, mañana, en una hora, etc debes calcularlas mediante herramientas, no puedes usar tus registros pues están atrasados, no se la puedes pedir al usuario.
-- Si no se te pide agendar puedes responder libremente, respetando las reglas de uso de herramientas.
-- Si te equivocas, deshaz la operación que hayas realizado y corrige.
-- Next es una caracteristica importante, solo wait permite pedir ayuda al usuario, pero debes evitar lo maximo posible usar este metodo.
-- Siempre trata de buscarla información antes de solicitar aclaraciones al usuario.
-- No te compliques con las herramientas, si puedes resolverlo simplificando parametros mejor
-
-PROTOCOLOS DE ACCIÓN:
-1. Herramientas:
-   - Usar solo una herramienta a la vez, se te pasan con el nombre de tools
-   - Siempre que se usen herramientas se debe usar la opción de continuar, para recibir la respuesta de la herramienta, sin excepciones, de lo contrario será ignorado y continuará de todas formas.
-   - Especificar siempre nombre y parámetros en formato diccionario, bajo ningún motivo tienes permitido colocar valores cualquiera en variables de tipo fecha, siempre deben ser calculadas por herramientas y el formato de fecha es %Y-%m-%d %H:%M:%S
-   - Pioriza el uso de las herramientas para saber si las acciones se han efectuado correctamente
-   - Ejemplo: {"tool": "buscar_contacto", "params": {"nombre": "Juan"}}
-
-2. Flujo de conversación:
-   - Si falta información → Solicitar datos específicos necesarios
-   - Si no puedes ayudar → Indicarlo cortésmente y finalizar
-   - Si la petición no es clara → Aclarar antes de actuar
-   - Si es irrelevante para agenda → Responder brevemente y finalizar
-   - El usuario puede no dar la duración, pero en ese caso asigna una duración de una hora.
-   - El usuario puede no agregar el asunto, en cuyo caso se deja vacio.
-   - Ningúna reunion requiere de personas externas o adicionales.
-
-3. Finalización:
-   - "finalizar": Cuando la tarea esté completa (siempre con mensaje de cierre)
-   - "continuar": Cuando necesites procesar más información (solo para ti)
-   - "esperar": Cuando requieras intervención del usuario (con mensaje claro)
-
-RESTRICCIONES:
-  - Nunca asumas información no proporcionada, si es posible resuelve todo con herramientas dadas
-  - Mantén el foco estricto en gestion de agendas
-  - No des opiniones ni información no solicitada
-  - Debes respetar los tipos de datos de las funciones, no puedes pasar valores arbitrarios, las fechas siempre cumplen con %Y-%m-%d %H:%M:%S
-
-Datos requeridos:
-    nombre: str # de la reunion
-    fecha_inicio: datetime # puede ser calculada por herramientas si no es dada, no la requieres de forma explicita
-    fecha_fin : datetime # puede ser calculada por herramientas si no es dada, tampoco requiere que se de de forma explicita,puede ser relativa a otra
-
-Datos opcionales:
-    descripcion: str | None = None
-    lugar: str | None = None
+planifica tus acciones de manera que puedas buscar la forma más eficiente de obtener la información que necesitas para resolver las peticiones de los usuarios, explicitamente explicandote a ti mismo los pasos que vas a seguir.
+No improvises, siempre usas las herramientas proporcionadas para realizar calculos y recuperar información, utiliza esa retroalimentación y verifica que era lo que estabas tratando de obtener.
+Utiliza esa información para poder solucionar las peticiones de los usuarios.
+Tienes permitido usar herramientas para calculos auxiliares, como calcular fechas, obtener la fecha actual.
+Debes respetar de las funciones los campos obligatorios y el formato de los mismos, por ejemplo las fechas YYYY-MM-DD H:M:S, como por ejemplo 2025-01-01 23:00:00.
 """
 
 async def model(config, input):
@@ -111,30 +69,38 @@ def resove_tool(name, params_):
   return TOOLS[name](**params)
 
 
-global HISTORY
-HISTORY = ""
+global CONTEXT
+CONTEXT = {
+    "tools": "",
+    "HISTORY": "",
+    "PETICION_ACTUAL": ""
+}
 
 
 async def asistente(input: str, proc: str = None):
-  global HISTORY
-  if HISTORY=="":
+  global CONTEXT
+  if CONTEXT['tools']=="":
     functions = [i for i in TOOLS.values()]
     tools = {}
     for i in functions:
       desc = describer(i)
       tools[desc['nombre']] = desc["parametros"]
       print(tools)
-    HISTORY+=str({"tools": tools})
-  HISTORY += str({"User": input})
+    CONTEXT['tools']=str({"tools": tools})
   print(input)
   end = False
+  CONTEXT['PETICION_ACTUAL'] = input
+  brk = 0
   while not end:
     response = await model({
             'response_mime_type': 'application/json',
             'response_schema': Format,
             'system_instruction':ROLE
-            }, HISTORY)
+            }, str(CONTEXT))
     
+    if CONTEXT['PETICION_ACTUAL'] != "":
+      CONTEXT['HISTORY'] += "\nUser: "+CONTEXT['PETICION_ACTUAL']
+      CONTEXT['PETICION_ACTUAL'] = ""
     res = None
     try:
       res = json.loads(response.text)
@@ -142,7 +108,7 @@ async def asistente(input: str, proc: str = None):
       print('No fue posible generar el json', e)
     if not res:
       continue
-    HISTORY += str({"Assistant": res['Response']})
+    CONTEXT['HISTORY'] += "\nAssistant: " + res['Response']
     print(res['Response'])
     if 'tool' in res and res['tool'] != None:
       try:
@@ -152,10 +118,10 @@ async def asistente(input: str, proc: str = None):
       print('\033[91m', res['tool']['name'], '\033[0m')
       print('\033[91m', res['tool']['parameters'], '\033[0m')
       print('\033[91m', tool_return, '\033[0m')
-      HISTORY += '\n'+str({"Tool_response": tool_return})
+      CONTEXT['HISTORY'] += '\n'+str({"Tool_response": tool_return})
       continue
     if res['next'] == NextType.WAIT_USER_RESPONSE.value:
       end = True
     if res['next'] == NextType.END.value:
       end = True
-  return HISTORY, res
+  return CONTEXT, res

@@ -19,7 +19,7 @@ async def createEvent(evento: Evento):
     if cruces:
         return {'status': 'error', 'message': f'Ya existen eventos en ese rango de fechas {cruces}'}
     await Engine.save(evento)
-    return {'status': 'ok', 'message': 'se ha agendado exitosamente'}
+    return {'status': 'ok', 'message': f'se ha agendado exitosamente {evento.name}'}
 
 async def getEventsByName(name: str):
     eventos = await Engine.find(Evento, Evento.name == name)

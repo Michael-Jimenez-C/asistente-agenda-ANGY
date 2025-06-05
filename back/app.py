@@ -1,33 +1,34 @@
 from fastapi import FastAPI
-from interfaces import Solicitud, TipoSolicitud,Evento
 from dotenv import load_dotenv
-import mocks
-
 load_dotenv()
 
-from db.functions import get_eventos, post_evento, put_evento, del_evento, get_todos, del_eventos
+from db.functions import getEventsBeetween, createEvent, getEventsByName, putEvent, deleteEventById, getAllEvents
+from datetime import datetime
+from db.models import Evento
+from odmantic.bson import ObjectId
 
 app = FastAPI()
 
-@app.post("/")
-async def procesarSolicitud(solicitud: Solicitud):
-    
-    match solicitud.solicitud:
-        case TipoSolicitud.AGREGAR:
-            return await post_evento(solicitud)
-        case TipoSolicitud.ELIMINAR_UNO:
-            return await del_evento(solicitud)
-        case TipoSolicitud.ELIMINAR_VARIOS:
-            return await del_eventos(solicitud)
-        case TipoSolicitud.MODIFICAR:
-            return await put_evento(solicitud)
-        case TipoSolicitud.LISTAR:
-            return await get_eventos(solicitud)
+@app.get("/between")
+async def Beetween(date_start: datetime, date_end: datetime):
+    return await getEventsBeetween(date_start, date_end)
 
-@app.get("/all", response_model = list[Evento])
+@app.post("/create")
+async def createEvent_(evento: Evento):
+    return await createEvent(evento)
+
+@app.get("/event/{name}")
+async def getEventsByName_(name: str):
+    return await getEventsByName(name)
+
+@app.put("/")
+async def putEvent_(evento: Evento):
+    return await putEvent(evento)
+
+@app.delete("/delete/{id_}")
+async def deleteEventById_(id_: ObjectId):
+    return await deleteEventById(id_)
+
+@app.get("/all")
 async def getAll():
-    return await get_todos()
-        
-@app.post("/init")
-async def init():
-    await mocks.init()
+    return await getAllEvents()

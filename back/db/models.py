@@ -2,7 +2,8 @@ from odmantic import Model
 from datetime import datetime
 
 class Evento(Model):
-    nombre: str
-    fecha_inicio: datetime
-    fecha_fin : datetime
-    
+    name: str
+    description: str
+    location: str
+    date_start: datetime
+    date_end : datetime

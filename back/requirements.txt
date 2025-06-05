@@ -1,0 +1,4 @@
+odmantic
+pydantic
+sqlmodel
+fastapi[standard]      

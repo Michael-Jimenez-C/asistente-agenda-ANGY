@@ -1,38 +1,26 @@
 from google import genai
 import os
-from .actions import ObtenerFecha
 import json
-from .agentResponses import Solicitud, Evento, Respuesta
-import requests
+from .agentResponses import Format, NextType
+from .tools import ObtenerFechaActual, CalcularFecha, getEventBetween, createEvent, getEventsByName, putEvent, deleteEventById
+import inspect
+
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
-SERVER = os.environ.get("SERVER")
 
-class Roles:
-  formateador = \
-  """Eres un asistente que se encarga de tomar la entrada del usuario, procesarla para el formado json indicado.
+ROLE = \
+"""
+ROL:
+Eres ANGY, un asistente de agenda virtual. Tu función es gestionar agendas de manera eficiente, precisa y profesional.
 
-  Las fechas dadas por el usuario pueden ser relativas, sin embargo, debes determinar la fecha actual y calcular la fecha en formato YYYY-MM-DD
-  Las horas dadas por el usuario pueden ser relativas, sin embargo, debes determinar la hora actual y calcular la hora en formato HH:MM, en formato de 24 horas
+planifica tus acciones de manera que puedas buscar la forma más eficiente de obtener la información que necesitas para resolver las peticiones de los usuarios, explicitamente explicandote a ti mismo los pasos que vas a seguir.
+No improvises, siempre usas las herramientas proporcionadas para realizar calculos y recuperar información, utiliza esa retroalimentación y verifica que era lo que estabas tratando de obtener.
+Utiliza esa información para poder solucionar las peticiones de los usuarios.
+Tienes permitido usar herramientas para calculos auxiliares, como calcular fechas, obtener la fecha actual.
+Debes respetar de las funciones los campos obligatorios y el formato de los mismos, por ejemplo las fechas YYYY-MM-DD H:M:S, como por ejemplo 2025-01-01 23:00:00.
+"""
 
-  Por defecto si no se indica hora de fin, se toma la hora de inicio y se añade una hora
-  Por defecto si no se indica hora de inicio, se toma la hora actual
-
-  Si la operación es borrar varios un dia, toma la hora como 00:00, y hora final como las 23:59
-
-  No puede haber más de una fecha por fecha
-
-  Para borrar debes conocer nombre, fecha, hora de inicio y hora final
-  """
-
-  asistente = \
-  """
-  Eres un asistente que se encarga de tomar la respuesta retornada por el servidor, y la entrada del susuario para entregar una respuesta más humanizada al usuario, trata de indicar cual es el error, por ejemplo con que actividades hay cruce
-  la verificación de conflictos lo realizará otro agente, asi que ignoraras esos posibles problemas, tampoco debes verificar los valores inferidos a partir de datos relativos, o si no se indica hora final pues se infiere que es dentro de una hora.
-  adicional recuerda que el usuario podria expresarse con tiempos relativos, mañana, ayer, en una hora, etc.
-  """
-
-def model(config, input):
+async def model(config, input):
   client = genai.Client(api_key=API_KEY)
   response = client.models.generate_content(
       model='gemini-2.0-flash',
@@ -41,59 +29,103 @@ def model(config, input):
   )
   return response
 
-def context(**kwargs):
-  """
-  Ese decorador de contexto se encarga de recibir un conjunto de funciones a ejecutar y las asigna a un diccionario
-  junto a la entrada
-  """
-  def context_(f):
-    def wrapper(input: str):
-      tmp = {
-          "Usuario": input
-      }
-      for i in kwargs:
-        tmp[i] = kwargs[i]()
-      return f(str(tmp))
-    return wrapper
-  return context_
+def describer(func):
+    def typeformat(tipo):
+        if tipo is inspect.Parameter.empty:
+            tipo = "Sin tipo"
+        else:
+            tipo = str(tipo).replace("<class '", "").replace("'>", "")
+        return tipo
+    
+    firma = inspect.signature(func)
+    nombre_funcion = func.__name__
 
-@context(fecha_actual = ObtenerFecha, eventos = lambda: requests.get(f"{SERVER}/all").json())
-def asistente_formater(input: str):
-  response = model({
-          'response_mime_type': 'application/json',
-          'response_schema': Solicitud,
-          'system_instruction':Roles.formateador
-          }, input)
-  res = None
-  try:
-    res = json.loads(response.text)
-  except Exception as e:
-    print('No fue posible generar el json', e)
-  finally:
-    return res
+    parametros = []
+    for nombre, parametro in firma.parameters.items():
+      tipo = typeformat(parametro.annotation)
+      if parametro.default is inspect.Parameter.empty:
+        obligatorio = "obligatoria"
+      else:
+        obligatorio = "opcional"
+      parametros.append((nombre, tipo, obligatorio))
 
-@context(fecha_actual = ObtenerFecha)
-def genSalida(input: str):
-  response = model({
-          'system_instruction':Roles.asistente
-          }, input)
-  return response.text
+    return {
+        "nombre": nombre_funcion,
+        "doc":  func.__doc__,
+        "parametros": parametros,
+    }
 
 
-def asistente(consulta: str):
-  response = asistente_formater(consulta)
-  if response['solicitud'] == "NADA":
-    return str(genSalida(str({
-    'consulta': consulta
-    }))),"{}"
-  r = requests.post(SERVER, json=response)
-  json = r.json()
+def normalize_params(params):
+  kwargs = {}
+  for i in params:
+    kwargs[i['nombre']] = i['valor']
+  return kwargs
 
-  ev = Evento(nombre= response['nombre'], fecha=response['fecha'], hora_inicio=response['hora_inicio'], hora_fin=response['hora_fin'])
-  resp = Respuesta(status=json['status'] if 'status' in json else 'failed', mensaje=str(json['detail']), evento=ev)
+TOOLS = {i.__name__:i for i in [ObtenerFechaActual, CalcularFecha, getEventBetween, createEvent, getEventsByName, putEvent, deleteEventById]}
 
-  return str(genSalida(str({
-    'consulta': consulta,
-    'formated': response,
-    'response': json,
-    }))),resp.json()
+def resove_tool(name, params_):
+  params = normalize_params(params_)
+  return TOOLS[name](**params)
+
+
+global CONTEXT
+CONTEXT = {
+    "tools": "",
+    "HISTORY": "",
+    "PETICION_ACTUAL": ""
+}
+
+
+async def asistente(input: str, proc: str = None):
+  global CONTEXT
+  if CONTEXT['tools']=="":
+    functions = [i for i in TOOLS.values()]
+    tools = {}
+    for i in functions:
+      desc = describer(i)
+      tools[desc['nombre']] = desc["parametros"]
+      print(tools)
+    CONTEXT['tools']=str({"tools": tools})
+  print(input)
+  end = False
+  CONTEXT['PETICION_ACTUAL'] = input
+  brk = 0
+  responses = []
+  while not end:
+    response = await model({
+            'response_mime_type': 'application/json',
+            'response_schema': Format,
+            'system_instruction':ROLE
+            }, str(CONTEXT))
+    
+    if CONTEXT['PETICION_ACTUAL'] != "":
+      CONTEXT['HISTORY'] += "\nUser: "+CONTEXT['PETICION_ACTUAL']
+      CONTEXT['PETICION_ACTUAL'] = ""
+    res = None
+    try:
+      res = json.loads(response.text)
+      responses.append({'Asistant': res})
+    except Exception as e:
+      print('No fue posible generar el json', e)
+    if not res:
+      continue
+    CONTEXT['HISTORY'] += "\nAssistant: " + res['Response']
+    print(res['Response'])
+    if 'tool' in res and res['tool'] != None:
+      try:
+        tool_return = resove_tool(res['tool']['name'], res['tool']['parameters'])
+      except Exception as e:
+        tool_return = str(e)
+      print('\033[91m', res['tool']['name'], '\033[0m')
+      print('\033[91m', res['tool']['parameters'], '\033[0m')
+      print('\033[91m', tool_return, '\033[0m')
+
+      responses.append({"Tool_response": tool_return})
+      CONTEXT['HISTORY'] += '\n'+str(responses[-1])
+      continue
+    if res['next'] == NextType.WAIT_USER_RESPONSE.value:
+      end = True
+    if res['next'] == NextType.END.value:
+      end = True
+  return responses

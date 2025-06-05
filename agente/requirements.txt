@@ -1,0 +1,5 @@
+google-genai
+odmantic
+fastapi[standard]
+pytz
+requests

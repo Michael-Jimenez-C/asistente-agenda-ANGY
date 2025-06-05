@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import pytz
 import os
+import uuid
 
 load_dotenv()
 tz = os.environ.get("TZ")
@@ -8,7 +9,6 @@ loctz = pytz.timezone(tz)
 
 
 from datetime import datetime
-from agent.agent import asistente
 import streamlit as st
 from streamlit_calendar import calendar
 from streamlit_mic_recorder import speech_to_text
@@ -27,20 +27,27 @@ from tts.tts import speech
 def load():
     data = requests.get(f"{os.environ.get('SERVER')}/all").json()
 
-    events = [{"title": x['nombre'],
+    events = [{"title": x['name'],
             "color": "#FFBD45",
-            "start": x['fecha_inicio'],
-            "end": x['fecha_fin'],
+            "start": x['date_start'],
+            "end": x['date_end'],
             "resourceId": "a"} for x in data]
     st.session_state['events'] = events
 
 def send(prompt: str):
-    st.session_state.past.append(prompt)
-    response, data = asistente(prompt)
-    st.session_state.generated.append(str(response))
-    st.session_state.responses.append(str(data))
-    st.session_state.audio.append(speech(str(response)))
+    response = requests.post(f"{os.environ.get('SERVER_AGENTE')}/",json = {"solicitud": prompt, "proc": "user"})
+    for resp in response.json():
+        st.session_state.past.append(prompt)
+        prompt = None
 
+        generated = resp.get('Asistant', {})
+
+        st.session_state.generated.append(generated.get('Response', None))
+        st.session_state.toolcall.append(generated.get('tool', None))
+        st.session_state.responses.append(generated)
+
+        st.session_state.audio.append(None)
+    st.session_state.audio[-1] = speech(str(st.session_state.generated[-1]))
 
 def on_btn_click():
     del st.session_state.past[:]
@@ -51,6 +58,10 @@ col1, col2 = st.columns(2)
 
 st.session_state.setdefault(
     'past', 
+    []
+)
+st.session_state.setdefault(
+    'toolcall', 
     []
 )
 st.session_state.setdefault(
@@ -85,8 +96,14 @@ with col1:
 
 
 for i in range(len(st.session_state['generated'])):
-    messages.chat_message("user").write(st.session_state['past'][i])
-    messages.chat_message("assistant").write(st.session_state['generated'][i])
+    if st.session_state['past'][i]:
+        messages.chat_message("user").write(st.session_state['past'][i])
+
+    if st.session_state['generated'][i]:
+        messages.chat_message("assistant").write(st.session_state['generated'][i])
+    if st.session_state['toolcall'][i]:
+        messages.chat_message("assistant").json(st.session_state['toolcall'][i], expanded=1)
+
     if st.session_state['audio'][i]:
         messages.chat_message("assistant").audio(st.session_state['audio'][i],autoplay=True)
 
@@ -94,7 +111,9 @@ for i in range(len(st.session_state['generated'])):
 col2.title("Responses")
 responses = col2.container(height=400)
 for i in range(len(st.session_state['responses'])):
-        responses.chat_message("assistant").json(st.session_state['responses'][i], expanded=1)
+        if st.session_state['responses'][i] and st.session_state['responses'][i] != {}:
+            responses.chat_message("assistant").json(st.session_state['responses'][i], expanded=1)
+
 
 calendar_resources = [
     {"id": "a", "building": "Building A", "title": "Room A"},
@@ -135,4 +154,3 @@ if st.session_state.get('events'):
         options=calendar_options,
         key='calendar'
         )
-

@@ -91,6 +91,7 @@ async def asistente(input: str, proc: str = None):
   end = False
   CONTEXT['PETICION_ACTUAL'] = input
   brk = 0
+  responses = []
   while not end:
     response = await model({
             'response_mime_type': 'application/json',
@@ -104,6 +105,7 @@ async def asistente(input: str, proc: str = None):
     res = None
     try:
       res = json.loads(response.text)
+      responses.append({'Asistant': res})
     except Exception as e:
       print('No fue posible generar el json', e)
     if not res:
@@ -118,10 +120,12 @@ async def asistente(input: str, proc: str = None):
       print('\033[91m', res['tool']['name'], '\033[0m')
       print('\033[91m', res['tool']['parameters'], '\033[0m')
       print('\033[91m', tool_return, '\033[0m')
-      CONTEXT['HISTORY'] += '\n'+str({"Tool_response": tool_return})
+
+      responses.append({"Tool_response": tool_return})
+      CONTEXT['HISTORY'] += '\n'+str(responses[-1])
       continue
     if res['next'] == NextType.WAIT_USER_RESPONSE.value:
       end = True
     if res['next'] == NextType.END.value:
       end = True
-  return CONTEXT, res
+  return responses

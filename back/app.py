@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 load_dotenv()
 
-from db.functions import getEventsBeetween, createEvent, getEventsByName, putEvent, deleteEventById
+from db.functions import getEventsBeetween, createEvent, getEventsByName, putEvent, deleteEventById, getAllEvents
 from datetime import datetime
 from db.models import Evento
 from odmantic.bson import ObjectId
@@ -28,3 +28,7 @@ async def putEvent_(evento: Evento):
 @app.delete("/delete/{id_}")
 async def deleteEventById_(id_: ObjectId):
     return await deleteEventById(id_)
+
+@app.get("/all")
+async def getAll():
+    return await getAllEvents()

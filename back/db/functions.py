@@ -13,6 +13,9 @@ async def getEventsBeetween(fs: datetime, ff:datetime):
     ))
     return r
 
+async def getAllEvents():
+    return await Engine.find(Evento)
+
 async def createEvent(evento: Evento):
     evento.name = evento.name
     cruces = await getEventsBeetween(evento.date_start, evento.date_end)
